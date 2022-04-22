@@ -11,7 +11,6 @@ from os import getenv
 
 app = FastAPI()
 logger = Logger()
-with open("db.json","r") as f: db: dict = load(f)
 cookies = {".ROBLOSECURITY": getenv("cookie")}
 headers = {"Origin": "https://www.roblox.com", "Referer": "https://www.roblox.com/"}
 
@@ -25,6 +24,13 @@ def date_format(iso_timestamp: str):
 
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
+
+try:
+    with open("db.json","r") as f: db: dict = load(f)
+except Exception as e: 
+    logger.log_traceback(error=e)
+    db = {"users": {}, "blacklisted": []}
+    save_db()
 
 async def update_ranking(): # sourcery no-metrics
     # 25k : 32424261, # Skilled
@@ -76,9 +82,12 @@ async def reorder_leaderboard():
         lb = []
         for place, userid in enumerate(users, start=1):
             lb.append({
-                "place": place,
                 "count": db["users"][userid].get("count", 0),
-                "userId": int(userid)
+                "quick_counting": db["users"][userid].get("quick_counting", False),
+                "counting": db["users"][userid].get("counting", False),
+                "place": place,
+                "cursor_count": db["users"][userid].get("cursor_count", 0),
+                "cursor": db["users"][userid].get("cursor")
             })
             db["users"][userid]["place"] = place
         save_db()
@@ -86,15 +95,22 @@ async def reorder_leaderboard():
     except Exception as e:
         logger.log_traceback(error=e)
 
-async def count(user: str):
+async def quickcount(user: str):
     try:
-        if not db.get("users", None): db["users"] = {}
+        if not db.get("users"): db["users"] = {}
         if not db["users"].get(user):
-            db["users"][user] = {"count": 0, "counting": False, "place": None}
-        if db["users"][user].get("counting", False): return
+            db["users"][user] = {
+                "count": 0,
+                "quick_counting": False,
+                "counting": False,
+                "place": 0,
+                "cursor_count": 0,
+                "cursor": None
+            }
+        if db["users"][user].get("counting", False) or db["users"][user].get("quick_counting", False): return
         if not db["users"][user].get("count"):
             db["users"][user]["count"] = 0
-        db["users"][user]["counting"] = True
+        db["users"][user]["quick_counting"] = True
 
         params = {"limit": 100, "sortOrder": "Asc"}
         request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
@@ -115,6 +131,7 @@ async def count(user: str):
                     params["cursor"] = cursor
                     db["users"][user]["cursor"] = cursor
                 else:
+                    db["users"][user]["quick_counting"] = False
                     db["users"][user]["counting"] = False
                     break
         save_db()
@@ -122,6 +139,46 @@ async def count(user: str):
     except Exception as e:
         logger.log_traceback(error=e)
 
+async def count(user: str):
+    try:
+        if not db.get("users"): db["users"] = {}
+        if not db["users"].get(user):
+            db["users"][user] = {
+                "count": 0,
+                "quick_counting": False,
+                "counting": False,
+                "place": 0,
+                "cursor_count": 0,
+                "cursor": None
+            }
+        if db["users"][user].get("counting", False) or db["users"][user].get("quick_counting", False): return
+        db["users"][user]["counting"] = True
+
+        params = {"limit": 100, "sortOrder": "Asc"}
+        request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
+        cursor_count = 0
+        user_badge_count = 0
+        async with ClientSession() as session:
+            while True:
+                async with session.get(request_url, params=params) as resp:
+                    response: dict = await resp.json()
+                    cursor_count = user_badge_count
+                    user_badge_count += len(response.get("data", []))
+                    cursor = response.get("nextPageCursor")
+                    logger.debug(f"{user} {len(response.get('data', []))} Cursor: {cursor}")
+                if cursor:
+                    params["cursor"] = cursor
+                else:
+                    db["users"][user]["quick_counting"] = False
+                    db["users"][user]["counting"] = False
+                    db["users"][user]["cursor"] = cursor
+                    db["users"][user]["count"] = user_badge_count
+                    db["users"][user]["cursor_count"] = cursor_count
+                    break
+        save_db()
+        await reorder_leaderboard()
+    except Exception as e:
+        logger.log_traceback(error=e)
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def index_HTML():
@@ -130,15 +187,21 @@ async def index_HTML():
 @app.get("/api/progress/{user}")
 async def api_count_progress(user: int):
     user = str(user)
-    if db.get("users", {}).get(user, None): return {"success": True, "data": {"counting": db["users"][user]["counting"], "count": db["users"][user]["count"]}}
-    return {"success": False, "message": "User not found"}
+    try: db["users"][user]
+    except KeyError: return {"success": False, "message": "User not found"}
+    return {"success": True, "data": {
+        "quick_counting": db["users"][user].get("quick_counting", False),
+        "counting": db["users"][user].get("counting", False),
+        "count": db["users"][user].get("count", 0)
+    }}
 
 @app.get("/api/rank/{user}")
 async def api_leaderboard_rank(user: int):
-    await reorder_leaderboard()
-    user = str(user)
-    if db.get("users", {}).get(user, {}).get("place"): return {"success": True, "rank": db["users"][user]["place"]}
-    return {"success": False, "message": "User not found"}
+    try:
+        await reorder_leaderboard()
+        user = str(user)
+        return {"success": True, "rank": db["users"][user]["place"]}
+    except KeyError: return {"success": False, "message": "User not found"}
 
 @app.get("/api/qc/{user}/{key}")
 @app.post("/api/qc/{user}/{key}")
@@ -147,8 +210,20 @@ async def api_badge_quickcount(user: int, key: str):
     if key != getenv("apikey"): return {"success": False, "message": "Invalid API key"}
     if user in db.get("blacklisted", []):
         return {"success": False, "message": "User is blacklisted"}
-    if db.get("users", {}).get(user) and db["users"][user]["counting"]:
-        return {"success": False, "message": "User is already counting"}
+    if db.get("users", {}).get(user) and (db["users"][user]["counting"] or db["users"][user]["quick_counting"]):
+        return {"success": False, "message": "User is already being counted"}
+    get_running_loop().create_task(quickcount(user))
+    return {"success": True, "message": "Started counting"}
+
+@app.get("/api/count/{user}/{key}")
+@app.post("/api/count/{user}/{key}")
+async def api_badge_count(user: int, key: str):
+    user = str(user)
+    if key != getenv("apikey"): return {"success": False, "message": "Invalid API key"}
+    if user in db.get("blacklisted", []):
+        return {"success": False, "message": "User is blacklisted"}
+    if db.get("users", {}).get(user) and (db["users"][user]["counting"] or db["users"][user]["quick_counting"]):
+        return {"success": False, "message": "User is already being counted"}
     get_running_loop().create_task(count(user))
     return {"success": True, "message": "Started counting"}
 
@@ -200,13 +275,11 @@ async def api_clear_badges(user: int, key: str):
 async def api_clear_database(key: str):
     if key != getenv("apikey"): return {"success": False, "message": "Invalid API key"}
     save_db(db_file="db.backup.json")
-    for user in db["users"]:
-        db["users"][user]["count"] = 0
-        db["users"][user]["counting"] = False
-        db["users"][user]["cursor_count"] = 0
-        db["users"][user]["cursor"] = None
+    users = list(db["users"].keys())
+    db["users"] = {}
     save_db()
-    await reorder_leaderboard()
+    tasks = (count(user) for user in users)
+    get_running_loop().create_task(gather(*tasks))
     get_running_loop().create_task(update_db())
     return {"success": True, "message": "Successfully reset the whole database and started recounting everyone."}
 
@@ -245,14 +318,14 @@ async def api_last_badge(user: int):
             d["awardedDate"] = date_format(response["data"][0]["awardedDate"])
         except Exception as e:
             logger.log_traceback(error=e)
-            return {"success": False, "message": "Error while fetching badge data"}
+            return {"success": False, "message": "Error whilst fetching badge data"}
     return {"success": True, "data": d}
 
 @app.get("/api/stats")
 async def api_stats():
     return {"success": True, "data": {
         "users": len(db.get("users", {})),
-        "counting": len([i for i in db.get("users", {}) if db["users"][i].get("counting", False)]),
+        "counting": len([i for i in db.get("users", {}) if (db["users"][i].get("counting", False) or db["users"][i].get("quick_counting", False))]),
         "badges": sum(db['users'][i].get("count", 0) for i in db.get('users', {}))
     }}
 
@@ -266,19 +339,16 @@ async def exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def on_startup():
-    for user in db["users"]: db["users"][user]["counting"] = False
+    for user in db["users"]:
+        db["users"][user]["counting"] = False
+        db["users"][user]["quick_counting"] = False
+    get_running_loop().create_task(reorder_leaderboard())
+    get_running_loop().create_task(update_db())
     # async with ClientSession() as session:
         # async with session.post("https://catalog.roblox.com/", cookies=cookies) as res:
             # logger.info(f"[{res.status}] catalog.roblox.com")
             # logger.info(res.headers)
-            # headers['X-CSRF-TOKEN'] = res.headers['x-csrf-token']
-
-# @repeat_every(seconds=3600) # Every hour minutes
-@app.on_event("startup")
-async def update():
-    get_running_loop().create_task(reorder_leaderboard())
-    get_running_loop().create_task(update_db())
-
+            # headers['X-CSRF-TOKEN'] = res.headers['X-CSRF-TOKEN']
 
 async def update_db():
     logger.info("Updating database...")
