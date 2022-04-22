@@ -85,9 +85,7 @@ async def reorder_leaderboard():
                 "count": db["users"][userid].get("count", 0),
                 "quick_counting": db["users"][userid].get("quick_counting", False),
                 "counting": db["users"][userid].get("counting", False),
-                "place": place,
-                "cursor_count": db["users"][userid].get("cursor_count", 0),
-                "cursor": db["users"][userid].get("cursor")
+                "place": place
             })
             db["users"][userid]["place"] = place
         save_db()
