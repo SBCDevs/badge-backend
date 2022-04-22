@@ -4,7 +4,7 @@ from utils import exceptions
 
 class Logger:
     def __init__(self):
-        self.__debug_enabled = True
+        self.__debug_enabled = False
 
     def raw(self, message: str, level="", show_level=True):
         if show_level: print(f"[{level}] {message}")
