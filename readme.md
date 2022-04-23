@@ -2,7 +2,7 @@
 
 Handles the badge counting process, saving the cursor, the badge count
 
-## Setup the repo for local development
+## Setup the repository for local development
 
 * [Download GitHub CLI](https://cli.github.com/)
 * [Download Git](https://git-scm.com/downloads)
