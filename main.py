@@ -82,10 +82,11 @@ async def reorder_leaderboard():
         lb = []
         for place, userid in enumerate(users, start=1):
             lb.append({
+                "place": place,
                 "count": db["users"][userid].get("count", 0),
+                "userId": int(userid),
                 "quick_counting": db["users"][userid].get("quick_counting", False),
                 "counting": db["users"][userid].get("counting", False),
-                "place": place
             })
             db["users"][userid]["place"] = place
         save_db()
