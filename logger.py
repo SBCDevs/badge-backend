@@ -1,10 +1,12 @@
+from dotenv import load_dotenv; load_dotenv()
+from utils import log_error, toBoolean
 from traceback import format_exc
 from time import strftime
-from utils import exceptions
+from os import getenv
 
 class Logger:
     def __init__(self):
-        self.__debug_enabled = False
+        self.__debug_enabled = toBoolean(getenv("debug"))
 
     def raw(self, message: str, level="", show_level=True):
         if show_level: print(f"[{level}] {message}")
@@ -14,7 +16,7 @@ class Logger:
     
     def log_traceback(self, error: Exception = None, traceback: str = None):
         if error:
-            exceptions.log_error(error)
+            log_error(error)
             try: raise error from error
             except Exception: traceback = format_exc()
         if traceback:
