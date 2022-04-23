@@ -110,6 +110,7 @@ async def quickcount(user: str):
         if not db["users"][user].get("count"):
             db["users"][user]["count"] = 0
         db["users"][user]["quick_counting"] = True
+        logger.debug(f"[QUICK COUNT] {db['users'][user]}")
 
         params = {"limit": 100, "sortOrder": "Asc"}
         request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
@@ -125,7 +126,7 @@ async def quickcount(user: str):
                     db["users"][user]["cursor_count"] = db["users"][user].get("count", 0)
                     db["users"][user]["count"] += len(response.get("data", []))
                     cursor = response.get("nextPageCursor")
-                    logger.debug(f"{user} {len(response.get('data', []))} Cursor: {cursor}")
+                    logger.debug(f"[QUICK COUNT] [{user}] {len(response.get('data', []))} Cursor: {cursor}")
                 if cursor:
                     params["cursor"] = cursor
                     db["users"][user]["cursor"] = cursor
@@ -152,21 +153,25 @@ async def count(user: str):
             }
         if db["users"][user].get("counting", False) or db["users"][user].get("quick_counting", False): return
         db["users"][user]["counting"] = True
+        logger.debug(f"[SLOW COUNT] {db['users'][user]}")
 
         params = {"limit": 100, "sortOrder": "Asc"}
         request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
         cursor_count = 0
         user_badge_count = 0
+        current_cursor = None
+        cursor = None
         async with ClientSession() as session:
             while True:
                 async with session.get(request_url, params=params) as resp:
                     response: dict = await resp.json()
                     cursor_count = user_badge_count
                     user_badge_count += len(response.get("data", []))
-                    cursor = response.get("nextPageCursor")
-                    logger.debug(f"{user} {len(response.get('data', []))} Cursor: {cursor}")
-                if cursor:
-                    params["cursor"] = cursor
+                    current_cursor = response.get("nextPageCursor")
+                    logger.debug(f"[SLOW COUNT] [{user}] {len(response.get('data', []))} Cursor: {cursor}")
+                if current_cursor:
+                    cursor = current_cursor
+                    params["cursor"] = current_cursor
                 else:
                     db["users"][user]["quick_counting"] = False
                     db["users"][user]["counting"] = False
