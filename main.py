@@ -26,7 +26,7 @@ def date_format(iso_timestamp: str):
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
 
-def chunks(data, size=250):
+def chunks(data, size=100):
     it = iter(data)
     for _ in range(0, len(data), size):
         yield {k:data[k] for k in islice(it, size)}
