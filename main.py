@@ -176,7 +176,6 @@ async def count(user: str):
                     break
         save_db()
         await reorder_leaderboard()
-        await update_ranking(user)
     except Exception as e:
         logger.log_traceback(error=e)
 
