@@ -41,7 +41,7 @@ except Exception as e:
     save_db()
 
 @app.on_event("startup")
-@repeat_every(seconds=(60 * 60))
+@repeat_every(seconds=(60 * 60 * 24))
 async def update_ranking():
     # 25k : 32424261, # Skilled
     # 50k : 33901017, # Expert
