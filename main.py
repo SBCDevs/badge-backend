@@ -351,8 +351,11 @@ async def on_startup():
 
 async def update_db():
     logger.info("Updating database...")
-    tasks = (count(user) for user in db["users"])
-    await gather(*tasks)
+    for i in range(0, len(db["users"]), 150):
+        logger.info(f"Updating chunk {i}/{len(db['users'])}")
+        tasks = (count(user) for user in db["users"][i:i + 150])
+        await gather(*tasks)
+        logger.info(f"Chunk {i}/{len(db['users'])} updated")
     logger.info("Database updated")
 
 @app.on_event("shutdown")
