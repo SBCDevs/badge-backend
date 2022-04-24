@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from roblox import Client, BaseGroup
 from dateutil.parser import parse
 from aiohttp import ClientSession
+from itertools import islice
 from json import load, dump
 from logger import Logger
 from uvicorn import run
@@ -24,6 +25,11 @@ def date_format(iso_timestamp: str):
 
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
+
+def chunks(data, size=250):
+    it = iter(data)
+    for _ in range(0, len(data), size):
+        yield {k:data[k] for k in islice(it, size)}
 
 try:
     with open("db.json","r") as f: db: dict = load(f)
@@ -351,11 +357,9 @@ async def on_startup():
 
 async def update_db():
     logger.info("Updating database...")
-    for i in range(0, len(db["users"]), 150):
-        logger.info(f"Updating chunk {i}/{len(db['users'])}")
-        tasks = (count(user) for user in db["users"][i:i + 150])
+    for chunk in chunks(db['users']):
+        tasks = (count(user) for user in chunk)
         await gather(*tasks)
-        logger.info(f"Chunk {i}/{len(db['users'])} updated")
     logger.info("Database updated")
 
 @app.on_event("shutdown")
