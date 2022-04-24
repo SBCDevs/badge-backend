@@ -1,12 +1,13 @@
 from fastapi.responses import HTMLResponse, JSONResponse
 from dotenv import load_dotenv; load_dotenv()
 from asyncio import get_running_loop, gather
+from fastapi_utils.tasks import repeat_every
 from fastapi import FastAPI, Request
-from roblox import Client, BaseGroup
 from dateutil.parser import parse
 from aiohttp import ClientSession
 from itertools import islice
 from json import load, dump
+from roblox import Client
 from logger import Logger
 from uvicorn import run
 from os import getenv
@@ -14,6 +15,7 @@ from os import getenv
 app = FastAPI()
 logger = Logger()
 client = Client(token=getenv("cookie"))
+group_id = 4851486
 
 def format_day(iso_timestamp: str):
     day_endings = {1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st'}
@@ -26,7 +28,7 @@ def date_format(iso_timestamp: str):
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
 
-def chunks(data, size=100):
+def chunks(data, size=500):
     it = iter(data)
     for _ in range(0, len(data), size):
         yield {k:data[k] for k in islice(it, size)}
@@ -38,37 +40,41 @@ except Exception as e:
     db = {"users": {}, "blacklisted": []}
     save_db()
 
-async def update_ranking(user: str, place: int, count: int):
+@app.on_event("startup")
+@repeat_every(seconds=(60 * 60))
+async def update_ranking():
     # 25k : 32424261, # Skilled
     # 50k : 33901017, # Expert
     # 75k : 47370121, # Master
     # 100k : 33901028, # Legend
     # Top 10 : 67852183 # Badge Champions
     
-    try:
-        group_id = 4851486
-        group = await client.get_group(group_id)
-        u = await client.get_user(int(user))
-        for role in await u.get_group_roles():
-            if role.group.id == group_id:
-                user_role = role.id
-                break
-        else:
-            logger.info(f"[RANKING] {u.name} is not in SBC")
-            return
-        if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: return
-        role = None
-        if   (count >= 100_000): role = 33901028
-        elif (count >=  75_000): role = 47370121
-        elif (count >=  50_000): role = 33901017
-        elif (count >=  25_000): role = 32424261
-        else: role = 32424203
-        if   (place <=     10): role = 67852183
-        if user_role != role:
-            logger.info(f"[RANKING] Promoting {u.name} to {role}")
-            await group.set_role(int(user), role)
-    except Exception as e:
-        logger.log_traceback(error=e)
+    lb = await reorder_leaderboard()
+    group = await client.get_group(group_id)
+    
+    for user in lb:
+        try:
+            u = await client.get_user(user['userId'])
+            for role in await u.get_group_roles():
+                if role.group.id == group_id:
+                    user_role = role.id
+                    break
+            else:
+                logger.info(f"[RANKING] {u.name} is not in SBC")
+                return
+            if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: return
+            role = None
+            if   (user["count"] >= 100_000): role = 33901028
+            elif (user["count"] >=  75_000): role = 47370121
+            elif (user["count"] >=  50_000): role = 33901017
+            elif (user["count"] >=  25_000): role = 32424261
+            else:                                         role = 32424203
+            if   (user["place"] <=      10): role = 67852183
+            if user_role != role:
+                logger.info(f"[RANKING] Promoting {u.name} to {role}")
+                await group.set_role(user['userId'], role)
+        except Exception as e:
+            logger.log_traceback(error=e)
 
 async def reorder_leaderboard():
     try:
@@ -89,7 +95,6 @@ async def reorder_leaderboard():
                 "quick_counting": db["users"][userid].get("quick_counting", False),
                 "counting": db["users"][userid].get("counting", False),
             })
-            get_running_loop().create_task(update_ranking(userid, place, db["users"][userid].get("count", 0)))
             db["users"][userid]["place"] = place
         save_db()
         return lb
@@ -137,6 +142,7 @@ async def quickcount(user: str):
                     db["users"][user]["counting"] = False
                     break
         save_db()
+        await reorder_leaderboard()
     except Exception as e:
         logger.log_traceback(error=e)
 
@@ -349,11 +355,6 @@ async def on_startup():
         db["users"][user]["quick_counting"] = False
     get_running_loop().create_task(reorder_leaderboard())
     get_running_loop().create_task(update_db())
-    # async with ClientSession() as session:
-        # async with session.post("https://catalog.roblox.com/", cookies=cookies) as res:
-            # logger.info(f"[{res.status}] catalog.roblox.com")
-            # logger.info(res.headers)
-            # headers['X-CSRF-TOKEN'] = res.headers['X-CSRF-TOKEN']
 
 async def update_db():
     logger.info("Updating database...")
