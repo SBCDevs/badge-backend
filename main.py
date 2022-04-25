@@ -61,8 +61,8 @@ async def update_ranking():
                     break
             else:
                 logger.info(f"[RANKING] {u.name} is not in SBC")
-                return
-            if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: return
+                continue
+            if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: continue
             role = None
             if   (user["count"] >= 100_000): role = 33901028
             elif (user["count"] >=  75_000): role = 47370121
@@ -73,6 +73,8 @@ async def update_ranking():
             if user_role != role:
                 logger.info(f"[RANKING] Promoting {u.name} to {role}")
                 await group.set_role(user['userId'], role)
+            else:
+                logger.info(f"[RANKING] {u.name} already has {role}")
         except Exception as e:
             logger.log_traceback(error=e)
 
