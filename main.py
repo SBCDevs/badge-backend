@@ -3,10 +3,9 @@ from roblox.utilities.exceptions import TooManyRequests
 from asyncio import get_running_loop, gather, sleep
 from dotenv import load_dotenv; load_dotenv()
 from fastapi_utils.tasks import repeat_every
+from utils import chunks, format_date
 from fastapi import FastAPI, Request
-from dateutil.parser import parse
 from aiohttp import ClientSession
-from itertools import islice
 from json import load, dump
 from roblox import Client
 from logger import Logger
@@ -19,21 +18,8 @@ client = Client(token=getenv("cookie"))
 group_id = 4851486
 chunk_size = int(getenv("chunk_size", default=250))
 
-def format_day(iso_timestamp: str):
-    day_endings = {1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st'}
-    day = int(parse(iso_timestamp).strftime("%d"))
-    return f"{day}{day_endings.get(day, 'th')}"
-
-def date_format(iso_timestamp: str):
-    return parse(iso_timestamp).strftime(f'%A, {format_day(iso_timestamp)} %B %Y')
-
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
-
-def chunks(data: dict, size: int):
-    it = iter(data)
-    for _ in range(0, len(data), size):
-        yield {k:data[k] for k in islice(it, size)}
 
 try:
     with open("db.json","r") as f: db: dict = load(f)
@@ -314,11 +300,11 @@ async def api_first_badge(user: int):
         try:
             async with session.get(f"https://badges.roblox.com/v1/users/{user}/badges?limit=10&sortOrder=Asc") as resp: response = await resp.json()
             d = {
-                i: (date_format(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
+                i: (format_date(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
                 for i in response["data"][0]
             }
             async with session.get(f'https://badges.roblox.com/v1/users/{user}/badges/awarded-dates?badgeIds={d["id"]}') as resp: response = await resp.json()
-            d["awardedDate"] = date_format(response["data"][0]["awardedDate"])
+            d["awardedDate"] = format_date(response["data"][0]["awardedDate"])
         except Exception as e:
             logger.log_traceback(error=e)
             return {"success": False, "message": "Error whilst fetching badge data"}
@@ -331,11 +317,11 @@ async def api_last_badge(user: int):
         try:
             async with session.get(f"https://badges.roblox.com/v1/users/{user}/badges?limit=10&sortOrder=Desc") as resp: response = await resp.json()
             d = {
-                i: (date_format(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
+                i: (format_date(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
                 for i in response["data"][0]
             }
             async with session.get(f'https://badges.roblox.com/v1/users/{user}/badges/awarded-dates?badgeIds={d["id"]}') as resp: response = await resp.json()
-            d["awardedDate"] = date_format(response["data"][0]["awardedDate"])
+            d["awardedDate"] = format_date(response["data"][0]["awardedDate"])
         except Exception as e:
             logger.log_traceback(error=e)
             return {"success": False, "message": "Error whilst fetching badge data"}
