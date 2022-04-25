@@ -1,6 +1,7 @@
 from fastapi.responses import HTMLResponse, JSONResponse
+from roblox.utilities.exceptions import TooManyRequests
+from asyncio import get_running_loop, gather, sleep
 from dotenv import load_dotenv; load_dotenv()
-from asyncio import get_running_loop, gather
 from fastapi_utils.tasks import repeat_every
 from fastapi import FastAPI, Request
 from dateutil.parser import parse
@@ -54,30 +55,35 @@ async def update_ranking():
     group = await client.get_group(group_id)
     
     for user in lb:
-        try:
-            u = await client.get_user(user['userId'])
-            for role in await u.get_group_roles():
-                if role.group.id == group_id:
-                    user_role = role.id
-                    break
-            else:
-                logger.debug(f"[RANKING] {u.name} is not in SBC")
-                continue
-            if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: continue
-            role = None
-            if   (user["count"] >= 100_000): role = 33901028
-            elif (user["count"] >=  75_000): role = 47370121
-            elif (user["count"] >=  50_000): role = 33901017
-            elif (user["count"] >=  25_000): role = 32424261
-            else:                                         role = 32424203
-            if   (user["place"] <=      10): role = 67852183
-            if user_role != role:
-                logger.debug(f"[RANKING] Promoting {u.name} to {role}")
-                await group.set_role(user['userId'], role)
-            else:
-                logger.debug(f"[RANKING] {u.name} already has {role}")
-        except Exception as e:
-            logger.log_traceback(error=e)
+        while True:
+            try:
+                u = await client.get_user(user['userId'])
+                for role in await u.get_group_roles():
+                    if role.group.id == group_id:
+                        user_role = role.id
+                        break
+                else:
+                    logger.debug(f"[RANKING] {u.name} is not in SBC")
+                    continue
+                if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: continue
+                role = None
+                if   (user["count"] >= 100_000): role = 33901028
+                elif (user["count"] >=  75_000): role = 47370121
+                elif (user["count"] >=  50_000): role = 33901017
+                elif (user["count"] >=  25_000): role = 32424261
+                else:                                         role = 32424203
+                if   (user["place"] <=      10): role = 67852183
+                if user_role != role:
+                    logger.debug(f"[RANKING] Promoting {u.name} to {role}")
+                    await group.set_role(user['userId'], role)
+                else: logger.debug(f"[RANKING] {u.name} already has {role}")
+                break
+            except TooManyRequests:
+                logger.warn("[RANKING] Too many requests, sleeping for 10 seconds and retrying... (Consider using smaller chunks!)")
+                await sleep(10)
+            except Exception as e:
+                logger.log_traceback(error=e)
+                break
 
 async def reorder_leaderboard():
     try:
