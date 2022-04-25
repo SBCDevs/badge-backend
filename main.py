@@ -352,21 +352,26 @@ async def exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def on_startup():
-    for user in db["users"]:
-        db["users"][user]["counting"] = False
-        db["users"][user]["quick_counting"] = False
-    get_running_loop().create_task(reorder_leaderboard())
-    get_running_loop().create_task(update_db())
+    try:
+        for user in db["users"]:
+            db["users"][user]["counting"] = False
+            db["users"][user]["quick_counting"] = False
+        get_running_loop().create_task(reorder_leaderboard())
+        get_running_loop().create_task(update_db())
+    except Exception as e: logger.log_traceback(error=e)
 
 async def update_db():
-    logger.debug("[STORAGE] Updating database...")
-    for chunk in chunks(db['users']):
-        tasks = (count(user) for user in chunk)
-        await gather(*tasks)
-    logger.debug("[STORAGE] Database updated")
+    try:
+        logger.debug("[STORAGE] Updating database...")
+        for chunk in chunks(db['users']):
+            tasks = (count(user) for user in chunk)
+            await gather(*tasks)
+        logger.debug("[STORAGE] Database updated")
+    except Exception as e: logger.log_traceback(error=e)
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    save_db()
-    
+    try: save_db()
+    except Exception as e: logger.log_traceback(error=e)
+
 if __name__ == "__main__": run(app, port=8684)
