@@ -60,7 +60,7 @@ async def update_ranking():
                     user_role = role.id
                     break
             else:
-                logger.info(f"[RANKING] {u.name} is not in SBC")
+                logger.debug(f"[RANKING] {u.name} is not in SBC")
                 continue
             if user_role not in [32424203, 32424261, 33901017, 47370121, 33901028, 67852183]: continue
             role = None
@@ -71,10 +71,10 @@ async def update_ranking():
             else:                                         role = 32424203
             if   (user["place"] <=      10): role = 67852183
             if user_role != role:
-                logger.info(f"[RANKING] Promoting {u.name} to {role}")
+                logger.debug(f"[RANKING] Promoting {u.name} to {role}")
                 await group.set_role(user['userId'], role)
             else:
-                logger.info(f"[RANKING] {u.name} already has {role}")
+                logger.debug(f"[RANKING] {u.name} already has {role}")
         except Exception as e:
             logger.log_traceback(error=e)
 
@@ -359,11 +359,11 @@ async def on_startup():
     get_running_loop().create_task(update_db())
 
 async def update_db():
-    logger.info("Updating database...")
+    logger.debug("[STORAGE] Updating database...")
     for chunk in chunks(db['users']):
         tasks = (count(user) for user in chunk)
         await gather(*tasks)
-    logger.info("Database updated")
+    logger.debug("[STORAGE] Database updated")
 
 @app.on_event("shutdown")
 async def on_shutdown():
