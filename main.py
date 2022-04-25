@@ -16,6 +16,7 @@ app = FastAPI()
 logger = Logger()
 client = Client(token=getenv("cookie"))
 group_id = 4851486
+chunk_size = int(getenv("chunk_size", default=250))
 
 def format_day(iso_timestamp: str):
     day_endings = {1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st'}
@@ -28,7 +29,7 @@ def date_format(iso_timestamp: str):
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f: dump(db, f, indent=4)
 
-def chunks(data, size=500):
+def chunks(data: dict, size: int):
     it = iter(data)
     for _ in range(0, len(data), size):
         yield {k:data[k] for k in islice(it, size)}
@@ -363,7 +364,7 @@ async def on_startup():
 async def update_db():
     try:
         logger.debug("[STORAGE] Updating database...")
-        for chunk in chunks(db['users']):
+        for chunk in chunks(db['users'], chunk_size):
             tasks = (count(user) for user in chunk)
             await gather(*tasks)
         logger.debug("[STORAGE] Database updated")
