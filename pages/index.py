@@ -4,8 +4,7 @@ from fastapi import APIRouter
 with open("public/index.html", "r") as f:
     index_page = f.read()
 
-async def handler(a: str = None):
-    print(a)
+async def handler():
     return HTMLResponse(content=index_page)
 
 def setup(router: APIRouter):
