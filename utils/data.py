@@ -7,6 +7,7 @@ def toBoolean(string: str):
     return None
 
 def chunks(data: dict, size: int):
+    data = data.copy()
     it = iter(data)
     for _ in range(0, len(data), size):
         yield {k:data[k] for k in islice(it, size)}
