@@ -294,3 +294,6 @@ test.py
 
 # The log file
 log.txt
+
+# Visual Studio Code
+.vscode
