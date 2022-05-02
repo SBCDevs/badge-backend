@@ -9,7 +9,7 @@ async def handler(a: str = None):
     return HTMLResponse(content=index_page)
 
 def setup(router: APIRouter):
-    router.add_api_route(
+    router.add_route(
         path="/",
         name="Index page",
         endpoint=handler,
