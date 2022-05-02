@@ -1,9 +1,9 @@
 from roblox.utilities.exceptions import TooManyRequests, InternalServerError
-from dotenv import load_dotenv; load_dotenv()
 from fastapi_utils.tasks import repeat_every
 from fastapi.responses import JSONResponse
 from utils import reorder_leaderboard
 from fastapi import FastAPI, Request
+__import__("dotenv").load_dotenv()
 from roblox import Client
 from logger import Logger
 from asyncio import sleep
