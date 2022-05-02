@@ -33,7 +33,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* rank [int] - The rank displayed as a integer
 
-* **POST** /api/qc/{user}/{key} - Quick counts user's badges
+* **POST** /api/qc/{user} - Quick counts user's badges
 	*  Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
@@ -41,7 +41,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* message [str] - A user-friendly message
 
-* **POST** /api/count/{user}/{key} - Counts user's badges (Ignores the cursor)
+* **POST** /api/count/{user} - Counts user's badges (Ignores the cursor)
 	*  Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
@@ -49,7 +49,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* message [str] - A user-friendly message
 
-* **POST** /api/blacklist/{user}/{key} - Blacklists a user from being counted
+* **POST** /api/blacklist/{user}?key={key} - Blacklists a user from being counted
 	* Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
@@ -57,7 +57,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* message [str] - A user-friendly message
 
-* **DELETE** /api/unblacklist/{user}/{key} - Unblacklists a user from being counted
+* **DELETE** /api/unblacklist/{user}?key={key} - Unblacklists a user from being counted
 	* Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
@@ -65,7 +65,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* message [str] - A user-friendly message
 
-* **DELETE** /api/clearbadges/{user}/{key} - Clears user's badges
+* **DELETE** /api/clearbadges/{user}?key={key} - Clears user's badges
 	* Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
@@ -73,7 +73,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* message [str] - A user-friendly message
 
-* **DELETE** /api/cleardb/{key} - Clears the whole storage and starts recounting everyone
+* **DELETE** /api/cleardb?key={key} - Clears the whole storage and starts recounting everyone
 	* Params:
 		* key - API key set in the `.env` file
 	* Returns:
