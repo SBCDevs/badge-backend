@@ -33,7 +33,7 @@ Handles the badge counting process, saving the cursor, the badge count
 		* success [bool] - Whether the request was successful or not
 		* rank [int] - The rank displayed as a integer
 
-* **POST** /api/qc/{user} - Quick counts user's badges
+* **POST** /api/quickcount/{user} - Quick counts user's badges
 	*  Params:
 		* user - Roblox user ID
 		* key - API key set in the `.env` file
