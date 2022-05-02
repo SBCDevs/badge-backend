@@ -1,5 +1,5 @@
+from roblox.utilities.exceptions import TooManyRequests, InternalServerError
 from fastapi.responses import HTMLResponse, JSONResponse
-from roblox.utilities.exceptions import TooManyRequests
 from asyncio import get_running_loop, gather, sleep
 from dotenv import load_dotenv; load_dotenv()
 from fastapi_utils.tasks import repeat_every
@@ -67,6 +67,9 @@ async def update_ranking():
             except TooManyRequests:
                 logger.warn("[RANKING] Too many requests, sleeping for 10 seconds and retrying... (Consider using smaller chunks!)")
                 await sleep(10)
+            except InternalServerError:
+                logger.error("[RANKING] Internal server error, sleeping for 2 and a half seconds and retrying...")
+                await sleep(2.5)
             except Exception as e:
                 logger.log_traceback(error=e)
                 break
