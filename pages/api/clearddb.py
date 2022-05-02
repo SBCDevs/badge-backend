@@ -4,7 +4,7 @@ __import__("dotenv").load_dotenv()
 from fastapi import APIRouter
 from os import getenv
 
-async def handler(key: str):
+async def handler(key: str = None):
     if key != getenv("apikey"): return {"success": False, "message": "Invalid API key"}
     save_db(db_file="db.backup.json")
     users = list(db["users"].keys())
