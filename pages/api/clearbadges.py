@@ -21,7 +21,7 @@ async def handler(user: int, key: str = None):
 def setup(router: APIRouter):
     router.add_api_route(
         path="/clearbadges/{user}",
-        name="Backend Stats",
+        name="Clear badges of a user",
         endpoint=handler,
         methods=["DELETE"]
     )
