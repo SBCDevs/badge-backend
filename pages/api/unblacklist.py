@@ -20,3 +20,10 @@ def setup(router: APIRouter):
         endpoint=handler,
         methods=["DELETE"]
     )
+    router.add_api_route(
+        path="/unblacklist/{user}",
+        name="Unblacklist a user",
+        endpoint=handler,
+        methods=["GET"],
+        include_in_schema=False
+    )

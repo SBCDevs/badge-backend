@@ -17,8 +17,15 @@ async def handler(user: int, key: str = None):
 
 def setup(router: APIRouter):
     router.add_api_route(
-        path="/api/blacklist/{user}",
+        path="/blacklist/{user}",
         name="Blacklist a user",
         endpoint=handler,
         methods=["POST"]
+    )
+    router.add_api_route(
+        path="/blacklist/{user}",
+        name="Blacklist a user",
+        endpoint=handler,
+        methods=["GET"],
+        include_in_schema=False
     )

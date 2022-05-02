@@ -18,3 +18,10 @@ def setup(router: APIRouter):
         endpoint=handler,
         methods=["POST"]
     )
+    router.add_api_route(
+        path="/count/{user}",
+        name="Count without the cursor",
+        endpoint=handler,
+        methods=["GET"],
+        include_in_schema=False
+    )

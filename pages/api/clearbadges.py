@@ -25,3 +25,10 @@ def setup(router: APIRouter):
         endpoint=handler,
         methods=["DELETE"]
     )
+    router.add_api_route(
+        path="/clearbadges/{user}",
+        name="Clear badges of a user",
+        endpoint=handler,
+        methods=["GET"],
+        include_in_schema=False
+    )

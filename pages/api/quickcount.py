@@ -16,5 +16,12 @@ def setup(router: APIRouter):
         path="/quickcount/{user}",
         name="Count with the cursor",
         endpoint=handler,
-        methods=["POST", "GET"]
+        methods=["POST"]
+    )
+    router.add_api_route(
+        path="/quickcount/{user}",
+        name="Count with the cursor",
+        endpoint=handler,
+        methods=["GET"],
+        include_in_schema=False
     )
