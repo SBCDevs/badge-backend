@@ -16,5 +16,5 @@ def setup(router: APIRouter):
         path="/quickcount/{user}",
         name="Count with the cursor",
         endpoint=handler,
-        methods=["POST"]
+        methods=["POST", "GET"]
     )
