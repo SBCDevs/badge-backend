@@ -1,7 +1,8 @@
+git+https://github.com/iDevision/enhanced-discord.py@925539d3eb4913492bdb4afd12776d8679fa645e
+python-dateutil
+python-dotenv
+fastapi_utils
 fastapi
 aiohttp
 uvicorn
-python-dotenv
-python-dateutil
-git+https://github.com/iDevision/enhanced-discord.py@925539d3eb4913492bdb4afd12776d8679fa645e
 roblox
