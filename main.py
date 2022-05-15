@@ -12,8 +12,9 @@ from os import getenv
 from pages import api
 import events
 import pages
+from httpx import RemoteProtocolError, ReadTimeout, ConnectError
 
-app = FastAPI(title="SBC Badge Counter", version="2.0.4", docs_url="/docs", redoc_url="/redoc")
+app = FastAPI(title="SBC Badge Counter", version="2.0.5", docs_url="/docs", redoc_url="/redoc")
 logger = Logger()
 client = Client(token=getenv("cookie"))
 group_id = 4851486
@@ -73,6 +74,9 @@ async def update_ranking():
             except InternalServerError:
                 logger.error("[RANKING] Internal server error, sleeping for 2 and a half seconds and retrying...")
                 await sleep(2.5)
+            except (RemoteProtocolError, ReadTimeout, ConnectError):
+                logger.warn("[RANKING] Connection error, sleeping for 10 seconds and retrying...")
+                await sleep(10)
             except Exception as e:
                 logger.log_traceback(error=e)
                 break
