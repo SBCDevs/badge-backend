@@ -7,12 +7,14 @@ async def handler(user: int):
     async with ClientSession() as session:
         try:
             async with session.get(f"https://badges.roblox.com/v1/users/{user}/badges?limit=10&sortOrder=Desc") as resp: response = await resp.json()
-            d = {
-                i: (format_date(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
-                for i in response["data"][0]
-            }
-            async with session.get(f'https://badges.roblox.com/v1/users/{user}/badges/awarded-dates?badgeIds={d["id"]}') as resp: response = await resp.json()
-            d["awardedDate"] = format_date(response["data"][0]["awardedDate"])
+            d = None
+            if next(iter(response["data"] or []), None):
+                d = {
+                    i: (format_date(response["data"][0][i]) if i in ("created", "updated") else response["data"][0][i])
+                    for i in response["data"][0]
+                }
+                async with session.get(f'https://badges.roblox.com/v1/users/{user}/badges/awarded-dates?badgeIds={d["id"]}') as resp: response = await resp.json()
+                d["awardedDate"] = format_date(response["data"][0]["awardedDate"])
         except Exception as e:
             logger.log_traceback(error=e)
             return {"success": False, "message": "Error whilst fetching badge data"}
