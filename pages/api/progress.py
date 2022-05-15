@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from utils import db
 
+
 async def handler(user: int):
     user = str(user)
     try:
