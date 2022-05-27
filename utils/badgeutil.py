@@ -1,4 +1,4 @@
-from .data import db, save_db, chunks
+from .data import db, list_chunks, save_db, chunks
 
 __import__("dotenv").load_dotenv()
 from aiohttp import ClientSession
@@ -148,6 +148,17 @@ async def update_db():
     try:
         logger.debug("[STORAGE] Updating database...")
         for chunk in chunks(db["users"], chunk_size):
+            tasks = (count(user) for user in chunk)
+            await gather(*tasks)
+        logger.debug("[STORAGE] Database updated")
+    except Exception as e:
+        logger.log_traceback(error=e)
+
+
+async def update_users(users: list):
+    try:
+        logger.debug(f"[STORAGE] Updating database with {len(users)}...")
+        for chunk in list_chunks(users, chunk_size):
             tasks = (count(user) for user in chunk)
             await gather(*tasks)
         logger.debug("[STORAGE] Database updated")
