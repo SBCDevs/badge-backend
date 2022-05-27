@@ -19,9 +19,11 @@ def chunks(data: dict, size: int):
     for _ in range(0, len(data), size):
         yield {k: data[k] for k in islice(it, size)}
 
+
 def list_chunks(data: list, size: int):
     for i in range(0, len(data), size):
-        yield data[i:i + size]
+        yield data[i : i + size]
+
 
 def save_db(db_file="db.json"):
     with open(db_file, "w") as f:
