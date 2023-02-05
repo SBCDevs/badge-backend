@@ -11,6 +11,7 @@ Handles the badge counting process, saving the cursor, the badge count
 * Clone the repo with `git clone https://github.com/SBCDevs/badge-backend`
 * Change the directory into the folder with `cd badge-backend`
 * Type in `pip install -r requirements.txt` to install all the needed packages
+* Setup the database (Follow the [documentation](docs/database.md))
 * Type in `cp .env.example .env` and edit the `.env` file to suit your needs
 * Start the server with `python main.py`
 
