@@ -7,7 +7,7 @@ from os import getenv
 
 async def handler(user: int, key: str = None):
     user = str(user)
-    if key != getenv("apikey"):
+    if key != getenv("APIKEY"):
         return {"success": False, "message": "Invalid API key"}
     if user not in db.get("blacklisted", []):
         return {"success": False, "message": "User not blacklisted"}

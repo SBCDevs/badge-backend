@@ -19,7 +19,7 @@ app = FastAPI(
     title="SBC Badge Counter", version="2.0.5", docs_url="/docs", redoc_url="/redoc"
 )
 logger = Logger()
-client = Client(token=getenv("cookie"))
+client = Client(token=getenv("COOKIE"))
 group_id = 4851486
 chunk_size = int(getenv("chunk_size", default=250))
 

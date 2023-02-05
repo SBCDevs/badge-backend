@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 def log_error(error):
-    webhook = SyncWebhook.from_url(os.getenv("webhook"))
+    webhook = SyncWebhook.from_url(os.getenv("WEBHOOK"))
     try:
         raise error from error
     except Exception:

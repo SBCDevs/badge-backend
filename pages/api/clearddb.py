@@ -7,7 +7,7 @@ from os import getenv
 
 
 async def handler(key: str = None):
-    if key != getenv("apikey"):
+    if key != getenv("APIKEY"):
         return {"success": False, "message": "Invalid API key"}
     backup_db()
     users = list(db["users"].keys())

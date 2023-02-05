@@ -9,7 +9,7 @@ from os import getenv
 
 class Logger:
     def __init__(self):
-        self.__debug_enabled = toBoolean(getenv("debug"))
+        self.__debug_enabled = toBoolean(getenv("DEBUG"))
 
     def raw(self, message: str, level="", show_level=True):
         if show_level:

@@ -6,7 +6,7 @@ from asyncio import gather
 from os import getenv
 from .log import logger
 
-chunk_size = int(getenv("chunk_size", default=250))
+chunk_size = int(getenv("CHUNK_SIZE", default=250))
 
 
 async def reorder_leaderboard():
