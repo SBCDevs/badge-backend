@@ -297,3 +297,6 @@ log.txt
 
 # Visual Studio Code
 .vscode
+
+# Surreal SQL history
+history.txt
