@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from typing import Optional
 
 @dataclass
 class User:
-    cursor: str = ""                # The cursor
+    _id: int
+    cursor: Optional[str] = None    # The cursor
     count: int = 0                  # The amount of badges the user has
     cursor_count: int = 0           # The amount of badges the user has before the cursor
     place: int = 0                  # Placing on the leaderboard

@@ -45,7 +45,7 @@ async def main():
         perc = round(index, len(db_file) * 100)
         print(f"Parsing users.. {perc}%", end="\r")
         key, value = i
-        new_db[key] = User(**value)
+        new_db[key] = User(**value, _id=int(key))
     print("Parsing users.. DONE")
 
     for index, i in enumerate(users):

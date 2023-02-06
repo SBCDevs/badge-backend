@@ -7,20 +7,22 @@ import dataclasses
 
 client = HTTPClient(
     f"http://{getenv('DB_HOST')}:{getenv('DB_PORT')}",
-    namespace=getenv("DB_NAMESPACE"),
-    database=getenv("DB_DATABASE"),
-    username=getenv("DB_USER"),
-    password=getenv("DB_PASS")
+    namespace=str(getenv("DB_NAMESPACE")),
+    database=str(getenv("DB_DATABASE")),
+    username=str(getenv("DB_USER")),
+    password=str(getenv("DB_PASS"))
 )
+
+USERS_TABLE = "users"
 
 def _parse_user_id(user_id: Any) -> str:
     return str(user_id)
 
 async def get_user(user_id: str) -> User:
     user_id = _parse_user_id(user_id)
-    try: user = await client.select_one("users", user_id)
+    try: user = await client.select_one(USERS_TABLE, user_id)
     except SurrealException: user = {} # Empty user (Default)
-    return User(user)
+    return User(_id=int(user_id), **user)
 
 async def update_user(user_id: str, partial_data: Union[Dict[str, Any], User]):
     user_id = _parse_user_id(user_id)
@@ -33,13 +35,13 @@ async def update_user(user_id: str, partial_data: Union[Dict[str, Any], User]):
     # Merge the user with the partial data
     user.update(partial_data)
 
-    await set_user(user_id, user)
+    await set_user(user_id, User(_id=int(user_id), **user))
 
 async def set_user(user_id: str, data: User):
     user_id = _parse_user_id(user_id)
-    data = dataclasses.asdict(data)
-    await client.replace_one("users", user_id, data)
+    set_data = dataclasses.asdict(data)
+    await client.replace_one(USERS_TABLE, user_id, set_data)
 
 async def delete_user(user_id: str):
     user_id = _parse_user_id(user_id)
-    await client.delete_one("users", user_id)
+    await client.delete_one(USERS_TABLE, user_id)
