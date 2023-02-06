@@ -19,7 +19,7 @@ iwr https://windows.surrealdb.com -useb | iex
 ## Start the database
 #### ⚠️ If you're using Docker the database is already started ⚠️ 
 ```sh
-surreal start --log trace --user ${USERNAME} --pass ${PASSWORD} memory
+surreal start --log info --user ${USERNAME} --pass ${PASSWORD} memory
 ```
 ## Create a namespace
 ### First connect to the database
