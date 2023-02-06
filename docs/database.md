@@ -30,3 +30,16 @@ surreal sql --user ${USERNAME} --pass ${PASSWORD} --conn "http://${HOST}:${PORT}
 ```sql
 DEFINE LOGIN username ON NAMESPACE PASSWORD password
 ```
+
+## Migrate the database from a older JSON format
+### Start the migration script
+#### Linux/macOS
+```sh
+python3 migrate.py
+```
+#### Windows
+```pwsh
+python migrate.py
+```
+### After you started the script drag and drop the database file and press enter
+### The database should be migrated now!
