@@ -3,17 +3,16 @@ from utils import db
 
 
 async def handler(user: int):
-    user = str(user)
-    try:
-        db["users"][user]
-    except KeyError:
-        return {"success": False, "message": "User not found"}
+    user_id = str(user)
+
+    u = await db.get_user(user_id)
+
     return {
         "success": True,
         "data": {
-            "quick_counting": db["users"][user].get("quick_counting", False),
-            "counting": db["users"][user].get("counting", False),
-            "count": db["users"][user].get("count", 0),
+            "quick_counting": u.quick_counting,
+            "counting": u.counting,
+            "count": u.count
         },
     }
 

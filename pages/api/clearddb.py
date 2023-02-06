@@ -1,19 +1,25 @@
-from utils import db, save_db, backup_db, update_users
 from asyncio import get_running_loop
-
+from utils import db, update_users
 __import__("dotenv").load_dotenv()
 from fastapi import APIRouter
+from datetime import datetime
+from models import User
 from os import getenv
+import json
 
-
-async def handler(key: str = None):
+async def handler(key: str = ""):
     if key != getenv("APIKEY"):
         return {"success": False, "message": "Invalid API key"}
-    backup_db()
-    users = list(db["users"].keys())
-    db["users"] = {}
-    save_db()
+
+    db_dump = await db.client.select_all(db.USERS_TABLE)
+    with open(f"./backups/{datetime.now().strftime('%d-%m-%Y')}.json", "w") as f:
+        json.dump(db_dump, f, indent=4)
+
+    database = db_dump.copy()
+    users = [User(**user)._id for user in database]
+
     get_running_loop().create_task(update_users(users=users))
+    
     return {
         "success": True,
         "message": "Successfully reset the whole database and started recounting everyone.",

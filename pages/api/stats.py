@@ -6,18 +6,20 @@ async def handler():
     return {
         "success": True,
         "data": {
-            "users": len(db.get("users", {})),
+            "users": len(await db.client.select_all(db.USERS_TABLE)),
             "counting": len(
                 [
                     i
-                    for i in db.get("users", {})
+                    
+                    for i in await db.client.select_all(db.USERS_TABLE)
+                    
                     if (
-                        db["users"][i].get("counting", False)
-                        or db["users"][i].get("quick_counting", False)
+                        i.get("counting", False)
+                        or i.get("quick_counting", False)
                     )
                 ]
             ),
-            "badges": sum(db["users"][i].get("count", 0) for i in db.get("users", {})),
+            "badges": sum(i.get("count", 0) for i in (await db.client.select_all(db.USERS_TABLE))),
         },
     }
 

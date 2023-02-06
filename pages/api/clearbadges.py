@@ -1,4 +1,4 @@
-from utils import db, save_db, reorder_leaderboard
+from utils import db, reorder_leaderboard
 from contextlib import suppress
 
 __import__("dotenv").load_dotenv()
@@ -6,20 +6,23 @@ from fastapi import APIRouter
 from os import getenv
 
 
-async def handler(user: int, key: str = None):
-    user = str(user)
+async def handler(user: int, key: str = ""):
+    user_id = str(user)
+    
     if key != getenv("APIKEY"):
         return {"success": False, "message": "Invalid API key"}
-    if not db.get("users", {}).get(user):
-        return {"success": False, "message": "User not found"}
-    with suppress(KeyError):
-        del db["users"][user]["count"]
-        del db["users"][user]["cursor_count"]
-        del db["users"][user]["cursor"]
-    db["users"][user]["counting"] = False
-    save_db()
+    
+    await db.update_user(user_id, {
+        "cursor": None,
+        "cursor_count": 0,
+        "count": 0,
+        "counting": False,
+        "quick_counting": False
+    })
+    
     await reorder_leaderboard()
-    return {"success": True, "message": f"Badges cleared for {user}"}
+    
+    return {"success": True, "message": f"Badges cleared for {user_id}"}
 
 
 def setup(router: APIRouter):

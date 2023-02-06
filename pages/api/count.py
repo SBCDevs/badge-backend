@@ -4,14 +4,18 @@ from fastapi import APIRouter
 
 
 async def handler(user: int):
-    user = str(user)
-    if user in db.get("blacklisted", []):
+    user_id = str(user)
+
+    u = await db.get_user(user_id)
+
+    if u.blacklisted:
         return {"success": False, "message": "User is blacklisted"}
-    if db.get("users", {}).get(user) and (
-        db["users"][user]["counting"] or db["users"][user]["quick_counting"]
-    ):
+
+    if u.counting or u.quick_counting:
         return {"success": False, "message": "User is already being counted"}
-    get_running_loop().create_task(count(user))
+
+    get_running_loop().create_task(count(user_id))
+
     return {"success": True, "message": "Started counting"}
 
 

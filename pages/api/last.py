@@ -4,11 +4,11 @@ from utils import logger, format_date
 
 
 async def handler(user: int):
-    user = str(user)
+    user_id = str(user)
     async with ClientSession() as session:
         try:
             async with session.get(
-                f"https://badges.roblox.com/v1/users/{user}/badges?limit=10&sortOrder=Desc"
+                f"https://badges.roblox.com/v1/users/{user_id}/badges?limit=10&sortOrder=Desc"
             ) as resp:
                 response = await resp.json()
             d = None
@@ -22,7 +22,7 @@ async def handler(user: int):
                     for i in response["data"][0]
                 }
                 async with session.get(
-                    f'https://badges.roblox.com/v1/users/{user}/badges/awarded-dates?badgeIds={d["id"]}'
+                    f'https://badges.roblox.com/v1/users/{user_id}/badges/awarded-dates?badgeIds={d["id"]}'
                 ) as resp:
                     response = await resp.json()
                 d["awardedDate"] = format_date(response["data"][0]["awardedDate"])

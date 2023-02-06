@@ -5,8 +5,9 @@ from utils import db, reorder_leaderboard
 async def handler(user: int):
     try:
         await reorder_leaderboard()
-        user = str(user)
-        return {"success": True, "rank": db["users"][user]["place"]}
+        user_id = str(user)
+        u = await db.get_user(user_id)
+        return {"success": True, "rank": u.place}
     except KeyError:
         return {"success": False, "message": "User not found"}
 
