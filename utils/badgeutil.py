@@ -1,4 +1,5 @@
-from .data import db, list_chunks, save_db, chunks
+from .data import list_chunks, chunks
+from . import database as db
 
 __import__("dotenv").load_dotenv()
 from aiohttp import ClientSession
@@ -14,7 +15,7 @@ async def reorder_leaderboard():
         users = dict(
             sorted(
                 {
-                    i: dict(db["users"][i]).get("count", 0) for i in db.get("users", [])
+                    i.get("_id"): i.get("count", 0) for i in await db.client.select_all(db.USERS_TABLE)
                 }.items(),
                 key=lambda x: x[1],
                 reverse=True,
@@ -22,17 +23,20 @@ async def reorder_leaderboard():
         )
         lb = []
         for place, userid in enumerate(users, start=1):
+            user_id = str(userid)
+            user = await db.get_user(user_id)
             lb.append(
                 {
                     "place": place,
-                    "count": db["users"][userid].get("count", 0),
-                    "userId": int(userid),
-                    "quick_counting": db["users"][userid].get("quick_counting", False),
-                    "counting": db["users"][userid].get("counting", False),
+                    "count": user.count,
+                    "userId": userid,
+                    "quick_counting": user.quick_counting,
+                    "counting": user.counting,
                 }
             )
-            db["users"][userid]["place"] = place
-        save_db()
+            await db.update_user(user_id, {
+                "place": place
+            })
         return lb
     except Exception as e:
         logger.log_traceback(error=e)
@@ -40,53 +44,38 @@ async def reorder_leaderboard():
 
 async def quickcount(user: str):
     try:
-        if not db.get("users"):
-            db["users"] = {}
-        if not db["users"].get(user):
-            db["users"][user] = {
-                "count": 0,
-                "quick_counting": False,
-                "counting": False,
-                "place": 0,
-                "cursor_count": 0,
-                "cursor": None,
-            }
-        if db["users"][user].get("counting", False) or db["users"][user].get(
-            "quick_counting", False
-        ):
+        u = await db.get_user(user)
+        if u.counting or u.quick_counting:
             return
-        if not db["users"][user].get("count"):
-            db["users"][user]["count"] = 0
-        db["users"][user]["quick_counting"] = True
-        logger.debug(f"[QUICK COUNT] {db['users'][user]}")
+    
+        u.quick_counting = True
+        logger.debug(f"[QUICK COUNT] {u}")
 
         params = {"limit": 100, "sortOrder": "Asc"}
         request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
 
-        if db["users"][user].get("cursor"):
-            params["cursor"] = db["users"][user]["cursor"]
-            db["users"][user]["count"] = db["users"][user].get("cursor_count", 0)
+        if u.cursor:
+            params["cursor"] = u.cursor
+            u.count = u.cursor_count
 
         async with ClientSession() as session:
             while True:
                 async with session.get(request_url, params=params) as resp:
                     response: dict = await resp.json()
-                    db["users"][user]["cursor_count"] = db["users"][user].get(
-                        "count", 0
-                    )
-                    db["users"][user]["count"] += len(response.get("data", []))
+                    u.count += len(response.get("data", []))
                     cursor = response.get("nextPageCursor")
                     logger.debug(
                         f"[QUICK COUNT] [{user}] {len(response.get('data', []))} Cursor: {cursor}"
                     )
                 if cursor:
                     params["cursor"] = cursor
-                    db["users"][user]["cursor"] = cursor
+                    u.cursor_count = u.count
+                    u.cursor = cursor
                 else:
-                    db["users"][user]["quick_counting"] = False
-                    db["users"][user]["counting"] = False
+                    u.quick_counting = False
+                    u.counting = False
                     break
-        save_db()
+        await db.update_user(user, u)
         await reorder_leaderboard()
     except Exception as e:
         logger.log_traceback(error=e)
@@ -94,23 +83,12 @@ async def quickcount(user: str):
 
 async def count(user: str):
     try:
-        if not db.get("users"):
-            db["users"] = {}
-        if not db["users"].get(user):
-            db["users"][user] = {
-                "count": 0,
-                "quick_counting": False,
-                "counting": False,
-                "place": 0,
-                "cursor_count": 0,
-                "cursor": None,
-            }
-        if db["users"][user].get("counting", False) or db["users"][user].get(
-            "quick_counting", False
-        ):
+        u = await db.get_user(user)
+        if u.counting or u.quick_counting:
             return
-        db["users"][user]["counting"] = True
-        logger.debug(f"[SLOW COUNT] {db['users'][user]}")
+        
+        u.counting = True
+        logger.debug(f"[SLOW COUNT] {u}")
 
         params = {"limit": 100, "sortOrder": "Asc"}
         request_url = f"https://badges.roblox.com/v1/users/{user}/badges"
@@ -132,22 +110,23 @@ async def count(user: str):
                     cursor = current_cursor
                     params["cursor"] = current_cursor
                 else:
-                    db["users"][user]["quick_counting"] = False
-                    db["users"][user]["counting"] = False
-                    db["users"][user]["cursor"] = cursor
-                    db["users"][user]["count"] = user_badge_count
-                    db["users"][user]["cursor_count"] = cursor_count
+                    u.quick_counting = False
+                    u.counting = False
+                    u.cursor = cursor
+                    u.count = user_badge_count
+                    u.cursor_count = cursor_count
                     break
-        save_db()
         await reorder_leaderboard()
     except Exception as e:
         logger.log_traceback(error=e)
 
 
 async def update_db():
+    #TODO
     try:
         logger.debug("[STORAGE] Updating database...")
-        for chunk in chunks(db["users"], chunk_size):
+        users = await db.client.select_all(db.USERS_TABLE)
+        for chunk in chunks(users, chunk_size):
             tasks = (count(user) for user in chunk)
             await gather(*tasks)
         logger.debug("[STORAGE] Database updated")
@@ -156,6 +135,7 @@ async def update_db():
 
 
 async def update_users(users: list):
+    #TODO
     try:
         logger.debug(f"[STORAGE] Updating database with {len(users)}...")
         for chunk in list_chunks(users, chunk_size):
