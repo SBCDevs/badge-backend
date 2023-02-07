@@ -9,7 +9,7 @@ from os import getenv
 
 class Logger:
     def __init__(self):
-        self.__debug_enabled = toBoolean(getenv("DEBUG"))
+        self.__debug_enabled = toBoolean(str(getenv("DEBUG")))
 
     def raw(self, message: str, level="", show_level=True):
         if show_level:
@@ -19,7 +19,7 @@ class Logger:
         with open("log.txt", "a", encoding="utf-8") as f:
             f.write(f"{strftime('[%m/%d/%Y %H:%M:%S]')} [{level}] {message}\n")
 
-    def log_traceback(self, error: Exception = None, traceback: str = None):
+    def log_traceback(self, error: Exception = None, traceback: str = None): # type: ignore
         if error:
             log_error(error)
             try:
@@ -47,7 +47,7 @@ class Logger:
     def error(self, message: str):
         self.raw(message=message, level="ERROR")
 
-    def fatal(self, message: str, traceback: str = None, error: Exception = None):
+    def fatal(self, message: str, traceback: str = None, error: Exception = None): # type: ignore
         self.raw(message=message, level="FATAL")
         if error:
             try:
