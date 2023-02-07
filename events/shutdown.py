@@ -1,12 +1,9 @@
-from utils import save_db, logger
+from utils import logger
 from fastapi import APIRouter
 
 
 async def handler():
-    try:
-        save_db()
-    except Exception as e:
-        logger.log_traceback(error=e)
+    ... # Unused.. for now.. (maybe)
 
 
 def setup(router: APIRouter):
