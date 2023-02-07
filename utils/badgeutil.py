@@ -3,15 +3,15 @@ __import__("dotenv").load_dotenv()
 from aiohttp import ClientSession
 from . import database as db
 from asyncio import gather
-from ..models import User
 from typing import List
 from .log import logger
 from os import getenv
 import asyncio
+from .. import models
 
 CHUNK_SIZE = int(getenv("CHUNK_SIZE", default=250))
 
-async def reorder_leaderboard():
+async def reorder_leaderboard() -> List[models.LeaderboardEntry]:
     try:
         users = dict(
             sorted(
@@ -24,21 +24,20 @@ async def reorder_leaderboard():
         for place, userid in enumerate(users, start=1):
             user_id = str(userid)
             user = await db.get_user(user_id)
-            lb.append(
-                {
-                    "place": place,
-                    "count": user.count,
-                    "userId": userid,
-                    "quick_counting": user.quick_counting,
-                    "counting": user.counting,
-                }
-            )
+            lb.append(models.LeaderboardEntry(
+                place=place,
+                count=user.count,
+                userId=userid,
+                quick_counting=user.quick_counting,
+                counting=user.counting
+            ))
             await db.update_user(user_id, {
                 "place": place
             })
         return lb
     except Exception as e:
         logger.log_traceback(error=e)
+        return []
 
 
 async def quickcount(user: str):
@@ -142,7 +141,7 @@ async def update_db():
         logger.log_traceback(error=e)
 
 
-async def update_users(users: List[User]):
+async def update_users(users: List[models.User]):
     try:
         logger.debug(f"[STORAGE] Updating database with {len(users)}...")
         semaphore = asyncio.Semaphore(CHUNK_SIZE)
