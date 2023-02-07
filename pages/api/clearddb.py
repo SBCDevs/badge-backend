@@ -3,22 +3,19 @@ from utils import db, update_users
 __import__("dotenv").load_dotenv()
 from fastapi import APIRouter
 from datetime import datetime
-from models import User
 from os import getenv
+import dataclasses
 import json
 
 async def handler(key: str = ""):
     if key != getenv("APIKEY"):
         return {"success": False, "message": "Invalid API key"}
 
-    db_dump = await db.client.select_all(db.USERS_TABLE)
+    db_dump = await db.get_all_users()
     with open(f"./backups/{datetime.now().strftime('%d-%m-%Y')}.json", "w") as f:
-        json.dump(db_dump, f, indent=4)
+        json.dump([dataclasses.asdict(user) for user in db_dump], f, indent=4)
 
-    database = db_dump.copy()
-    users = [User(**user)._id for user in database]
-
-    get_running_loop().create_task(update_users(users=users))
+    get_running_loop().create_task(update_users(users=db_dump))
     
     return {
         "success": True,

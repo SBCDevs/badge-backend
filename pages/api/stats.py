@@ -3,23 +3,21 @@ from utils import db
 
 
 async def handler():
+    users = await db.get_all_users()
     return {
         "success": True,
         "data": {
-            "users": len(await db.client.select_all(db.USERS_TABLE)),
+            "users": len(users),
             "counting": len(
                 [
-                    i
+                    user
                     
-                    for i in await db.client.select_all(db.USERS_TABLE)
+                    for user in users
                     
-                    if (
-                        i.get("counting", False)
-                        or i.get("quick_counting", False)
-                    )
+                    if (user.counting or user.quick_counting)
                 ]
             ),
-            "badges": sum(i.get("count", 0) for i in (await db.client.select_all(db.USERS_TABLE))),
+            "badges": sum(user.count for user in users),
         },
     }
 

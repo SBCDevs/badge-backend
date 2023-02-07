@@ -1,22 +1,21 @@
-from .data import list_chunks, chunks
-from . import database as db
-
+from .async_util import semaphore_wrapper
 __import__("dotenv").load_dotenv()
 from aiohttp import ClientSession
+from . import database as db
 from asyncio import gather
-from os import getenv
+from ..models import User
+from typing import List
 from .log import logger
+from os import getenv
+import asyncio
 
-chunk_size = int(getenv("CHUNK_SIZE", default=250))
-
+CHUNK_SIZE = int(getenv("CHUNK_SIZE", default=250))
 
 async def reorder_leaderboard():
     try:
         users = dict(
             sorted(
-                {
-                    i.get("_id"): i.get("count", 0) for i in await db.client.select_all(db.USERS_TABLE)
-                }.items(),
+                { i._id: i.count for i in await db.get_all_users() }.items(),
                 key=lambda x: x[1],
                 reverse=True,
             )
@@ -122,25 +121,42 @@ async def count(user: str):
 
 
 async def update_db():
-    #TODO
     try:
         logger.debug("[STORAGE] Updating database...")
-        users = await db.client.select_all(db.USERS_TABLE)
-        for chunk in chunks(users, chunk_size):
-            tasks = (count(user) for user in chunk)
-            await gather(*tasks)
+        users = await db.get_all_users()
+        
+        semaphore = asyncio.Semaphore(CHUNK_SIZE)
+        
+        tasks = [
+            asyncio.create_task(
+                semaphore_wrapper(
+                    count(str(user._id)),
+                    semaphore
+                )
+            ) for user in users
+        ]
+        
+        await gather(*tasks)
         logger.debug("[STORAGE] Database updated")
     except Exception as e:
         logger.log_traceback(error=e)
 
 
-async def update_users(users: list):
-    #TODO
+async def update_users(users: List[User]):
     try:
         logger.debug(f"[STORAGE] Updating database with {len(users)}...")
-        for chunk in list_chunks(users, chunk_size):
-            tasks = (count(user) for user in chunk)
-            await gather(*tasks)
+        semaphore = asyncio.Semaphore(CHUNK_SIZE)
+        
+        tasks = [
+            asyncio.create_task(
+                semaphore_wrapper(
+                    count(str(user._id)),
+                    semaphore
+                )
+            ) for user in users
+        ]
+        
+        await gather(*tasks)
         logger.debug("[STORAGE] Database updated")
     except Exception as e:
         logger.log_traceback(error=e)

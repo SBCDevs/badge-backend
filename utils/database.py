@@ -1,7 +1,7 @@
-from surrealdb.clients.http import HTTPClient
 from surrealdb.common.exceptions import SurrealException
+from surrealdb.clients.http import HTTPClient
+from typing import Any, Union, Dict, List
 from ..models.user import User
-from typing import Any, Union, Dict
 from os import getenv
 import dataclasses
 
@@ -17,6 +17,9 @@ USERS_TABLE = "users"
 
 def _parse_user_id(user_id: Any) -> str:
     return str(user_id)
+
+async def get_all_users() -> List[User]:
+    return [User(**u) for u in await client.select_all(USERS_TABLE)]
 
 async def get_user(user_id: str) -> User:
     user_id = _parse_user_id(user_id)
