@@ -300,3 +300,7 @@ log.txt
 
 # Surreal SQL history
 history.txt
+
+# SurrealDB RocksDB directory
+database.db
+database.db/*
